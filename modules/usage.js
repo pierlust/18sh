@@ -31,7 +31,8 @@ Game actions:
 
 Game settings:
 \t^Wbanksize^ <currency symbol><amount> – Set the bank size and optionally set the currency.
-\t^Wrounding^ <up|1837> – Changes the default half dividend rounding. "Up" is in favour of the company, "1837" is the 1837 style with exact sums rounded down when paid.
+\t^Wrounding^ <up|1837|18OE> – Changes the default dividend and half dividend rounding. "Up" is in favour of the company, "1837" is the 1837 style with exact sums rounded down when paid, "18OE" is the 18OE style with exact sums rounded up when paid.
+\t^Wdividendstyle^ <full> - Changes the behaviour of the dividend command: the amount is not the dividend per share, but the full dividend amount. Dividends not evenly divisible by 10 are handled in 18OE style: all amounts paid are rounded up to the nearest unit.
 \t^Wcompanycredits^ – Switch to using 1825 style company credits, where company cash is not part of the bank.
 
 Game management:

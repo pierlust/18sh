@@ -98,31 +98,70 @@ describe("GameState", () => {
 
 	describe("dividend", () => {
 		const mikkoShares = 4
-		const nooaShares = 2
+		const nooaShares = 3
+		const companyShares = 3
+		let mikkoCash = 0
+		let nooaCash = 0
+		let companyCash = 0
 
-		before(() => {
+		beforeEach(() => {
 			conf.clear()
 			gameState.resetGameState()
 			gameState.buyShares("MIKKO", "CR", mikkoShares)
 			gameState.buyShares("NOOA", "CR", nooaShares)
 			gameState.buyShares("ANNI", "NBR", nooaShares)
-			gameState.buyShares("CR", "CR", nooaShares)
+			gameState.buyShares("CR", "CR", companyShares)
+			mikkoCash = 0
+			nooaCash = 0
+			companyCash = 0
 		})
 
-		let mikkoCash = 0
-		let nooaCash = 0
-
-		const dividend = 10
-
 		it("should pay correct dividends", () => {
+			const dividend = 10
+
 			gameState.payDividends("CR", dividend)
 			gameState.addToHistory("CR dividend 10")
 
-			mikkoCash += dividend * mikkoShares
-			nooaCash += dividend * nooaShares
+			mikkoCash = dividend * mikkoShares
+			nooaCash = dividend * nooaShares
+			companyCash = dividend * companyShares
 
 			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
 			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
+		})
+
+		it("should pay correct dividends when full dividend amount is specified", () => {
+			const fulldividend = 100
+
+			gameState.setParameter("dividendstyle", "FULL")
+			gameState.payDividends("CR", fulldividend)
+			gameState.addToHistory("CR dividend 100")
+
+			mikkoCash = fulldividend / 10 * mikkoShares
+			nooaCash = fulldividend / 10 * nooaShares
+			companyCash = fulldividend / 10 * companyShares
+
+			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
+			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
+		})
+
+		it("should pay correct dividends when full dividend is not multiple of 10", () => {
+			const fulldividend = 75
+
+			gameState.setParameter("dividendstyle", "FULL")
+			gameState.setParameter("rounding", "18OE")
+			gameState.payDividends("CR", fulldividend)
+			gameState.addToHistory("CR dividend 75")
+
+			mikkoCash = Math.ceil(fulldividend / 10 * mikkoShares)
+			nooaCash = Math.ceil(fulldividend / 10 * nooaShares)
+			companyCash = Math.ceil(fulldividend / 10 * companyShares)
+
+			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
+			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
 		})
 
 		it("should handle non-number values correctly (ie. 0)", () => {
@@ -130,6 +169,7 @@ describe("GameState", () => {
 
 			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
 			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
 		})
 
 		const halfDividendTotal = 230
@@ -141,12 +181,13 @@ describe("GameState", () => {
 			gameState.payHalfDividends("CR", halfDividendTotal)
 			gameState.addToHistory("CR halfdividend 230")
 
-			mikkoCash += halfDividendPerShare * mikkoShares
-			nooaCash += halfDividendPerShare * nooaShares
+			mikkoCash = halfDividendPerShare * mikkoShares
+			nooaCash = halfDividendPerShare * nooaShares
+			companyCash = halfDividendForCompany + (halfDividendPerShare * companyShares)
 
-			expect(gameState._getCash("CR", halfDividendForCompany))
 			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
 			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
 		})
 
 		it("should handle half dividends with UP rounding", () => {
@@ -157,12 +198,13 @@ describe("GameState", () => {
 			gameState.payHalfDividends("CR", halfDividendTotal)
 			gameState.addToHistory("CR halfdividend 230")
 
-			mikkoCash += halfDividendPerShare * mikkoShares
-			nooaCash += halfDividendPerShare * nooaShares
+			mikkoCash = halfDividendPerShare * mikkoShares
+			nooaCash = halfDividendPerShare * nooaShares
+			companyCash = halfDividendForCompany + (halfDividendPerShare * companyShares)
 
-			expect(gameState._getCash("CR", halfDividendForCompany))
 			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
 			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
 		})
 
 		it("should handle half dividends with 1837 rounding", () => {
@@ -176,6 +218,24 @@ describe("GameState", () => {
 
 			expect(gameState._getCash("TISZA", 25))
 			expect(gameState._getCash("MIKKO")).to.equal(7)
+		})
+
+		it("should handle half dividends with 18OE rounding", () => {
+			// Half to company, other half pro rata to shareholders. All amounts paid are rounded up the nearest unit. 
+			const halfDividendPerShare = 11.5
+			const halfDividendForCompany = 115
+
+			gameState.setParameter("rounding", "18OE")
+			gameState.payHalfDividends("CR", halfDividendTotal)
+			gameState.addToHistory("CR halfdividend 230")
+
+			mikkoCash = Math.ceil(halfDividendPerShare * mikkoShares)
+			nooaCash = Math.ceil(halfDividendPerShare * nooaShares)
+			companyCash = halfDividendForCompany + Math.ceil(halfDividendPerShare * companyShares)
+
+			expect(gameState._getCash("MIKKO")).to.equal(mikkoCash)
+			expect(gameState._getCash("NOOA")).to.equal(nooaCash)
+			expect(gameState._getCash("CR")).to.equal(companyCash)
 		})
 	})
 
@@ -635,12 +695,22 @@ describe("GameState", () => {
 			gameState.resetGameState()
 		})
 
+		it("should get nonexisting parameters correctly", () => {
+			expect(gameState._getParameter("nonexisting")).to.be.undefined
+		})
+
 		it("should set and get parameters correctly", () => {
 			gameState.setParameter("rounding", "UP")
 			expect(gameState._getParameter("rounding")).to.equal("UP")
 
 			gameState.setParameter("companycredits", true)
 			expect(gameState._getParameter("companycredits")).to.be.true
+		})
+
+		it("should unset and get parameters correctly", () => {
+			gameState.setParameter("rounding", "18OE")
+			gameState.setParameter("rounding")
+			expect(gameState._getParameter("rounding")).to.be.undefined
 		})
 	})
 })

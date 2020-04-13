@@ -91,6 +91,24 @@ const parse = command => {
 					comment
 				}
 				break
+			case "dividendstyle":
+				result = {
+					verb: "dividendstyle",
+					object: null,
+					subject: null,
+					quantity: 0,
+					comment
+				}
+				break
+			case "rounding":
+				result = {
+					verb: "rounding",
+					object: null,
+					subject: null,
+					quantity: 0,
+					comment
+				}
+				break
 			default:
 				result = {
 					verb: null,
@@ -177,6 +195,15 @@ const parse = command => {
 			case "next":
 				result = {
 					verb: "next",
+					object,
+					subject: null,
+					quantity: 0,
+					comment
+				}
+				break
+			case "dividendstyle":
+				result = {
+					verb: "dividendstyle",
 					object,
 					subject: null,
 					quantity: 0,

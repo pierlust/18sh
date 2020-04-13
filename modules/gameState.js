@@ -174,12 +174,15 @@ const _getPlayers = () => {
 const payDividends = (payingCompany, value) => {
 	if (isNaN(value)) value = 0
 
+	if (_getParameter("dividendstyle") === "FULL") value /= 10
+
 	let feedback = ""
+	const dividendcalculator = _getDividendCalculator()
 	const sharesOwned = stockHoldings.getCompanyOwners(payingCompany)
 	Object.keys(sharesOwned).forEach(player => {
-		const moneyEarned = Math.floor(sharesOwned[player] * value)
+		const moneyEarned = dividendcalculator(value, sharesOwned[player])
+		changeCash(player, moneyEarned)
 		if (moneyEarned > 0) {
-			changeCash(player, moneyEarned)
 			feedback += `${payingCompany} pays ${player} ^y${_getCurrency()}${moneyEarned}^ for ${
 				sharesOwned[player]
 			} shares.\n`
@@ -188,36 +191,55 @@ const payDividends = (payingCompany, value) => {
 	return feedback
 }
 
+const _getDividendCalculator = () => {
+	const rounding = _getParameter("rounding")
+	
+	switch (rounding) {
+		case "18OE":
+			return (amount, ownership) => Math.ceil(amount * ownership)
+		default:
+			return (amount, ownership) => Math.floor(amount * ownership)
+	}
+}
+
 const payHalfDividends = (payingCompany, totalSum) => {
 	let feedback = ""
 	if (isNaN(totalSum)) totalSum = 0
 
 	const rounding = _getParameter("rounding")
+	const dividendstyle = _getParameter("dividendstyle")
 	let companyRetains = 0
-	let perShare = 0
+	let dividendAmount = 0
 	switch (rounding) {
 		case "UP": {
 			const halfFloored = Math.ceil(totalSum / 20)
 			companyRetains = halfFloored * 10
-			perShare = (totalSum - companyRetains) / 10
+			dividendAmount = totalSum - companyRetains
 			break
 		}
-		case "1837": {
+		case "1837":
+		case "18OE": {
 			companyRetains = totalSum / 2
-			perShare = (totalSum - companyRetains) / 10
+			dividendAmount = totalSum - companyRetains
 			break
 		}
 		default: {
 			const halfFloored = Math.floor(totalSum / 20)
 			companyRetains = halfFloored * 10
-			perShare = (totalSum - companyRetains) / 10
+			dividendAmount = totalSum - companyRetains
 		}
+	}
+	switch(dividendstyle) {
+		case "FULL":
+			break
+		default:
+			dividendAmount /= 10
 	}
 
 	changeCash(payingCompany, companyRetains)
 
 	feedback = `${payingCompany} retains ^y${_getCurrency()}${companyRetains}^:.\n`
-	feedback += payDividends(payingCompany, perShare)
+	feedback += payDividends(payingCompany, dividendAmount)
 
 	return feedback
 }
@@ -507,7 +529,10 @@ const _payIncome = () => {
 /* Parameter adjustment. */
 
 const setParameter = (parameter, value = null) => {
-	if (value) gameState.parameters[parameter] = value
+	if (value) 
+		gameState.parameters[parameter] = value
+	else
+		Reflect.deleteProperty(gameState.parameters, parameter)
 }
 
 const _getParameter = parameter => gameState.parameters[parameter]

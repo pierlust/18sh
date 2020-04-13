@@ -280,6 +280,14 @@ describe("Parser", () => {
 				quantity: 0
 			})
 		})
+		it("should return correct for dividendstyle", () => {
+			expect(parser("dividendstyle full")).to.include({
+				verb: "dividendstyle",
+				object: "FULL",
+				subject: null,
+				quantity: 0
+			})
+		})
 		it("should return correct for companycredits", () => {
 			expect(parser("companycredits")).to.include({
 				verb: "companycredits",
